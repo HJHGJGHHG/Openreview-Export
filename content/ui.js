@@ -82,54 +82,41 @@
     icon.setAttribute('height', '18');
     icon.setAttribute('style', 'display:block;flex-shrink:0;');
 
-    const label = document.createElement('span');
-    label.textContent = 'Export Review';
-
-    btn.appendChild(icon);
-    btn.appendChild(label);
-
-    btn.addEventListener('click', async () => {
-      btn.disabled = true;
+    const zip = btn.cloneNode(false);
+    btn.append(icon, 'Export Forum (.md)');
+    zip.textContent = 'Export All Materials (.zip)';
+    const status = document.createElement('span');
+    status.setAttribute('role', 'status');
+    status.style.cssText = 'background:white;color:#333;max-width:min(320px,90vw)';
+    root.style.display = 'grid';
+    root.style.gap = '4px';
+    const report = message => { status.textContent = message; };
+    async function run(archive) {
+      btn.disabled = zip.disabled = true;
+      report('Reading forum...');
       try {
-        await ns.ensureForumRepliesRendered();
-        const domData = ns.extractOfficialReviewsFromDom();
-        let md;
-        let baseName;
-
-        if (domData.reviews.length > 0) {
-          md = ns.buildMarkdownFromDomData({
-            paperTitle: domData.paperTitle,
-            forumUrl: window.location.href,
-            reviews: domData.reviews,
-          });
-          baseName = ns.sanitizeFilenameBase(domData.paperTitle);
+        const id = new URL(location.href).searchParams.get('id');
+        const data = await ns.collectForum(id);
+        const name = 'OpenReview - ' + ns.sanitizeFilenameBase(data.title);
+        let missing = 0;
+        if (archive) {
+          const result = await ns.archiveForum(data, report);
+          missing = result.missing;
+          ns.downloadBlob(result.blob, name + '.zip');
+        } else {
+          const md = ns.renderForum(data).markdown;
+          ns.downloadBlob(new Blob([md], {type: 'text/markdown;charset=utf-8'}), name + '.md');
         }
-
-        if (!md) {
-          md = ns.scrapeDomFallback();
-          baseName = ns.sanitizeFilenameBase(
-            md.match(/^#\s+(.+)$/m)?.[1]?.trim() || ns.getPaperTitleFromDom(),
-          );
-        }
-
-        ns.downloadMarkdownInPage(md, `OpenReview - ${baseName}.md`);
-      } catch (_) {
-        try {
-          const mdFallback = ns.scrapeDomFallback();
-          const titleFromMd = mdFallback.match(/^#\s+(.+)$/m)?.[1]?.trim() || 'Untitled';
-          ns.downloadMarkdownInPage(
-            mdFallback,
-            `OpenReview - ${ns.sanitizeFilenameBase(titleFromMd)}.md`,
-          );
-        } catch {
-          // ignore nested fallback errors
-        }
+        report([data.warning, missing ? missing + ' file(s) missing; see missing-files.txt.' : '', 'Exported ' + data.notes.size + ' notes.'].filter(Boolean).join(' '));
+      } catch (err) {
+        report('Export failed: ' + err.message);
       } finally {
-        btn.disabled = false;
+        btn.disabled = zip.disabled = false;
       }
-    });
-
-    root.appendChild(btn);
+    }
+    btn.addEventListener('click', () => run(false));
+    zip.addEventListener('click', () => run(true));
+    root.append(status, btn, zip);
     document.body.appendChild(root);
   }
 

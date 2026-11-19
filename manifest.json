@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "OpenReview Export",
-  "version": "1.1.0",
-  "description": "Export OpenReview forum reviews to Markdown from the page.",
+  "version": "1.2.0",
+  "description": "Export OpenReview forums to Markdown or a ZIP with papers and attachments.",
   "host_permissions": ["https://openreview.net/*", "https://www.openreview.net/*"],
   "content_scripts": [
     {
@@ -15,7 +15,9 @@
         "content/helpers.js",
         "content/math.js",
         "content/review-parser.js",
-        "content/markdown-builder.js",
+        "vendor/fflate-0.8.2.js",
+        "content/forum.js",
+        "content/archive.js",
         "content/ui.js",
         "content.js"
       ],
@@ -29,6 +31,6 @@
     }
   ],
   "action": {
-    "default_title": "Export Review — bottom-right on a paper forum page (?id=)"
+    "default_title": "Export forum and materials"
   }
 }

@@ -79,23 +79,18 @@
     return trimmed.slice(0, 180) || 'Untitled';
   }
 
-  function downloadMarkdownInPage(markdown, filename) {
-    const safe =
-      typeof filename === 'string' && filename.toLowerCase().endsWith('.md')
-        ? filename
-        : `${String(filename || 'OpenReview-export')}.md`;
-    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+  function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     try {
       const a = document.createElement('a');
       a.href = url;
-      a.download = safe;
+      a.download = filename;
       a.rel = 'noopener';
       document.body.appendChild(a);
       a.click();
       a.remove();
     } finally {
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   }
 
@@ -106,5 +101,5 @@
   ns.sleep = sleep;
   ns.getPaperTitleFromDom = getPaperTitleFromDom;
   ns.sanitizeFilenameBase = sanitizeFilenameBase;
-  ns.downloadMarkdownInPage = downloadMarkdownInPage;
+  ns.downloadBlob = downloadBlob;
 })();
